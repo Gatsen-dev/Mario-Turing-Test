@@ -4,7 +4,6 @@ import engine.core.MarioAgent;
 import engine.core.MarioForwardModel;
 import engine.core.MarioTimer;
 import engine.helper.MarioActions;
-import engine.sprites.Mario;
 
 public class Agent implements MarioAgent {
 
@@ -31,9 +30,23 @@ public class Agent implements MarioAgent {
 
     private boolean enemyNearby(MarioForwardModel model, Rectangle rect) {
         float[] enemyPos = model.getEnemiesFloatPos();
-        for (int i=0; i<model.getEnemiesFloatPos().length; i+=3) {
-            if (rect.contains(enemyPos[i+1], enemyPos[i+2])) {
+        for (int i = 0; i < enemyPos.length; i += 3) {
+            if (rect.contains(enemyPos[i + 1], enemyPos[i + 2])) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean wallInFront(MarioForwardModel model) {
+        int marioTileX = model.getMarioScreenTilePos()[0];
+        int marioTileY = model.getMarioScreenTilePos()[1];
+        int[][] scene = model.getScreenSceneObservation();
+
+        // Check for wall in front of Mario. The +1/+2 in indices accounts for Mario's width and the next tile
+        for (int y = marioTileY; y >= marioTileY - 2; y--) { // Checking 2 tiles high
+            if (scene[marioTileX + 1][y] != 0) {
+                return true; // Wall is detected in front of Mario
             }
         }
         return false;
@@ -55,18 +68,24 @@ public class Agent implements MarioAgent {
     public boolean[] getActions(MarioForwardModel model, MarioTimer timer) {
         boolean enemyNearby = enemyNearby(model, new Rectangle(model.getMarioFloatPos()[0] - 50, model.getMarioFloatPos()[1] - 50, 100.0f, 100.0f));
         if (enemyNearby && jumpType == JumpType.NONE && model.isMarioOnGround()) {
-            setJump(JumpType.ENEMY, 2);
+            setJump(JumpType.ENEMY, 4);
         }
 
-        if (jumpType == JumpType.ENEMY) {
+        // Check if a wall is in front of Mario and we're not already dealing with an enemy
+        if (wallInFront(model) && jumpType == JumpType.NONE && model.isMarioOnGround()) {
+            // Set the jump with a height sufficient to clear one tile (could be adjusted based on wall height)
+            setJump(JumpType.WALL, 10); // You may need to calibrate the jumpHeight based on actual wall height
+        }
+
+        if (jumpType == JumpType.WALL || jumpType == JumpType.ENEMY) {
             action[MarioActions.JUMP.getValue()] = true;
             jumpCounter++;
         }
+
         if (jumpCounter >= jumpHeight) {
             action[MarioActions.JUMP.getValue()] = false;
             setJump(JumpType.NONE, -1);
         }
-
 
         return action;
     }
