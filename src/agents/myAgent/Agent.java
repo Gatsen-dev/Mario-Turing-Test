@@ -46,7 +46,7 @@ public class Agent implements MarioAgent {
         // Check for wall in front of Mario. The +1/+2 in indices accounts for Mario's width and the next tile
         for (int y = marioTileY; y >= marioTileY - 2; y--) { // Checking 2 tiles high
             if (scene[marioTileX + 1][y] != 0) {
-                return true; // Wall is detected in front of Mario
+                return true;
             }
         }
         return false;
@@ -71,10 +71,8 @@ public class Agent implements MarioAgent {
             setJump(JumpType.ENEMY, 4);
         }
 
-        // Check if a wall is in front of Mario and we're not already dealing with an enemy
         if (wallInFront(model) && jumpType == JumpType.NONE && model.isMarioOnGround()) {
-            // Set the jump with a height sufficient to clear one tile (could be adjusted based on wall height)
-            setJump(JumpType.WALL, 10); // You may need to calibrate the jumpHeight based on actual wall height
+            setJump(JumpType.WALL, 10);
         }
 
         if (jumpType == JumpType.WALL || jumpType == JumpType.ENEMY) {
