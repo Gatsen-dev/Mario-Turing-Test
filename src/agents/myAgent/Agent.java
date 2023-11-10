@@ -100,13 +100,11 @@ public class Agent implements MarioAgent {
         int y = marioTileY; 
         int x = marioTileX;
         int stairCounter = 0;
-        while ( (y> 0 &&  x> 0) && scene[x][y] != 0){
+        while ( (y> 0 &&  x> 0) && scene[x+1][y] != 0 && stairCounter < 4){
             stairCounter++; 
             y--;
             x++;
         }
-
-
         return stairCounter; 
     }
 
@@ -185,7 +183,6 @@ public class Agent implements MarioAgent {
         //Variables used throughout mario's decision making
         float[] marioPos = model.getMarioFloatPos();
         float[] enemyLocation = getClosestEnemyPos(model, new Rectangle(marioPos[0] - 48, marioPos[1] - 100, 96.0f, 200.0f));
-        boolean enemyAboveMario = (getClosestEnemyPos(model, new Rectangle(marioPos[0] - 80, marioPos[1] - 200, 160.0f, 200.0f)) != null);
         int ceilingHeight = hasCeilingAbove(model);
         boolean isFalling = (prevY < marioPos[1]);
         int wallHeight = wallInFront(model);
@@ -221,14 +218,14 @@ public class Agent implements MarioAgent {
             }
         }
 
+        if(jumpType == JumpType.NONE && numStairs > 1){
+            System.out.println("STAIRS");
+            setJump(JumpType.STAIRS, 10);
+        }
+
         //Obstacle Detection
         if (jumpType == JumpType.NONE && wallHeight != 0 && model.isMarioOnGround()) {
             setJump(JumpType.WALL, wallHeight > 1 ? wallHeight + 3 : 2);
-        }
-
-        if(jumpType == JumpType.NONE && numStairs != 0 && model.isMarioOnGround()){
-            System.out.println("STAIRS");
-            setJump(JumpType.STAIRS, 10);
         }
 
         if (jumpType == JumpType.NONE && gapSize > 0) {
@@ -260,7 +257,7 @@ public class Agent implements MarioAgent {
             leftCounter = 0;
         }
 
-        System.out.println("Left: " + action[MarioActions.LEFT.getValue()] + " Right: " + action[MarioActions.RIGHT.getValue()] + " Enemy Above Mario: " + enemyAboveMario);
+//        System.out.println("Left: " + action[MarioActions.LEFT.getValue()] + " Right: " + action[MarioActions.RIGHT.getValue()] + " Enemy Above Mario: " + enemyAboveMario);
 
         //Sets his current Y as his prev Y for the next game tick
         prevY = marioPos[1];
