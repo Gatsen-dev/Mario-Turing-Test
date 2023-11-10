@@ -90,17 +90,20 @@ public class Agent implements MarioAgent {
         return height;
     }
 
+    /**
+     * Checks if there is a set of stairs in front of mario.
+     * @param model Mario's model
+     * @return An integer representing the number of stairs in front, or 0 if there aren't any stairs.
+     */
     private int stairsInFront(MarioForwardModel model){
         int marioTileX = model.getMarioScreenTilePos()[0];
         int marioTileY = model.getMarioScreenTilePos()[1];
         int[][] scene = model.getScreenSceneObservation();
 
-        //Check if there are stairs in front of Mario. 
-
         int y = marioTileY; 
         int x = marioTileX;
         int stairCounter = 0;
-        while ( (y> 0 &&  x> 0) && scene[x+1][y] != 0 && stairCounter < 4){
+        while ((y > 0 &&  x > 0) && scene[x+1][y] != 0 && stairCounter < 4){ // Cutoff at no greater than 4 stairs
             stairCounter++; 
             y--;
             x++;
@@ -191,7 +194,7 @@ public class Agent implements MarioAgent {
         int numStairs = stairsInFront(model);
 
         if (enemyLocation != null) { // Enemy detection
-            if (enemyLocation[0] < marioPos[0] && model.isMarioOnGround()) {
+            if (enemyLocation[0] < marioPos[0] && model.isMarioOnGround()) { // Enemy to the left
                 action[MarioActions.LEFT.getValue()] = true;
                 action[MarioActions.RIGHT.getValue()] = false;
             }
@@ -204,7 +207,7 @@ public class Agent implements MarioAgent {
                     setJump(JumpType.ENEMY, 1);
                 }
                 else if (enemyLocation[1] < marioPos[1] && Math.abs(enemyLocation[1] - marioPos[1]) > 8) { // Enemy above mario
-                    if (Math.abs(enemyLocation[1] - marioPos[1]) <= 40) { // Enemy significantly above mario
+                    if (Math.abs(enemyLocation[1] - marioPos[1]) <= 40) { // Enemy not significantly above mario
                         setJump(JumpType.ENEMY, ceilingHeight != -1 ? ceilingHeight - 1 : 0);
                     }
                 }
@@ -212,38 +215,26 @@ public class Agent implements MarioAgent {
                     if (Math.abs(enemyLocation[1] - marioPos[1]) > 40) { // Enemy significantly below mario
                         setJump(JumpType.ENEMY, 0);
                     }
-                    else {
+                    else { // Enemy not significantly below mario
                         setJump(JumpType.ENEMY, 4);
                     }
                 }
             }
         }
 
-        if(jumpType == JumpType.NONE && numStairs > 1){
-            System.out.println("STAIRS");
-            setJump(JumpType.STAIRS, 10);
-        }
-
-        //Obstacle Detection
+        //Wall detected jump
         if (jumpType == JumpType.NONE && wallHeight != 0 && model.isMarioOnGround()) {
             setJump(JumpType.WALL, wallHeight > 1 ? wallHeight + 3 : 2);
         }
 
+        //Stair detected jump
+        if((jumpType == JumpType.NONE || jumpType == JumpType.WALL) && numStairs > 2){
+            setJump(JumpType.STAIRS, numStairs + 4);
+        }
+
+        //Gap detected jump
         if (jumpType == JumpType.NONE && gapSize > 0) {
             setJump(JumpType.GAP, 5);
-        }
-
-        action[MarioActions.RIGHT.getValue()] = !((gapSize > 0 && isFalling) && !action[MarioActions.LEFT.getValue()]);
-        action[MarioActions.SPEED.getValue()] = ((wallHeight >= 4) || (gapSize > 4));
-        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE);
-
-        // Jump timer for varying jump height
-        if (action[MarioActions.JUMP.getValue()]) {
-            jumpCounter++;
-        }
-        if (jumpCounter > jumpHeight) {
-            action[MarioActions.JUMP.getValue()] = false;
-            setJump(JumpType.NONE, -1);
         }
 
         // Forces mario to not chase to the left indefinitely
@@ -258,7 +249,19 @@ public class Agent implements MarioAgent {
             leftCounter = 0;
         }
 
-//        System.out.println("Left: " + action[MarioActions.LEFT.getValue()] + " Right: " + action[MarioActions.RIGHT.getValue()] + " Enemy Above Mario: " + enemyAboveMario);
+        //Setting mario's action based off of calculated conditions
+        action[MarioActions.RIGHT.getValue()] = !((gapSize > 0 && isFalling) && !action[MarioActions.LEFT.getValue()]);
+        action[MarioActions.SPEED.getValue()] = ((wallHeight >= 4) || (gapSize > 4) || (numStairs >= 4));
+        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE);
+
+        // Jump timer for varying jump height
+        if (action[MarioActions.JUMP.getValue()]) {
+            jumpCounter++;
+        }
+        if (jumpCounter > jumpHeight) {
+            action[MarioActions.JUMP.getValue()] = false;
+            setJump(JumpType.NONE, -1);
+        }
 
         //Sets his current Y as his prev Y for the next game tick
         prevY = marioPos[1];
