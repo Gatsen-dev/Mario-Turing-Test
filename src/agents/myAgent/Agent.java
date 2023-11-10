@@ -123,8 +123,9 @@ public class Agent implements MarioAgent {
         int x = marioTileX + 1;
         int gapsize = 0;
         while (x < marioTileX + 5) { // Cutoff at 5 tiles
-            for (int y = Math.max(marioTileY, 0); y < marioTileY + 3; y++) {
-                if (scene[x][y] != 0) { // Block 2 spaces in front of mario + y position is not empty
+            for (int y = Math.max(marioTileY, 0); y <= marioTileY + 3; y++) {
+                if (y >= 16) break;
+                if (scene[x][y] != 0) { // Block 1 space in front of mario + y position is not empty
                     return gapsize;
                 }
             }
@@ -233,8 +234,8 @@ public class Agent implements MarioAgent {
         }
 
         action[MarioActions.RIGHT.getValue()] = !((gapSize > 0 && isFalling) && !action[MarioActions.LEFT.getValue()]);
-        action[MarioActions.SPEED.getValue()] = ((wallHeight >= 4) || (gapSize >= 4));
-        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE );
+        action[MarioActions.SPEED.getValue()] = ((wallHeight >= 4) || (gapSize > 4));
+        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE);
 
         // Jump timer for varying jump height
         if (action[MarioActions.JUMP.getValue()]) {
