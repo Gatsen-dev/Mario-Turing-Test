@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class Agent implements MarioAgent {
 
-    private enum JumpType {ENEMY, WALL, GAP, NONE}
+    private enum JumpType {ENEMY, WALL, GAP, STAIRS, NONE}
     private boolean[] action;
     private JumpType jumpType = JumpType.NONE;
     private int jumpHeight = 0;
@@ -88,6 +88,26 @@ public class Agent implements MarioAgent {
             y--;
         }
         return height;
+    }
+
+    private int stairsInFront(MarioForwardModel model){
+        int marioTileX = model.getMarioScreenTilePos()[0];
+        int marioTileY = model.getMarioScreenTilePos()[1];
+        int[][] scene = model.getScreenSceneObservation();
+
+        //Check if there are stairs in front of Mario. 
+
+        int y = marioTileY; 
+        int x = marioTileX;
+        int stairCounter = 0;
+        while ( (y> 0 &&  x> 0) && scene[x][y] != 0){
+            stairCounter++; 
+            y--;
+            x++;
+        }
+
+
+        return stairCounter; 
     }
 
     /**
@@ -170,6 +190,7 @@ public class Agent implements MarioAgent {
         boolean isFalling = (prevY < marioPos[1]);
         int wallHeight = wallInFront(model);
         int gapSize = gapInFront(model);
+        int numStairs = stairsInFront(model);
 
         if (enemyLocation != null) { // Enemy detection
             if (enemyLocation[0] < marioPos[0] && model.isMarioOnGround()) {
@@ -205,13 +226,18 @@ public class Agent implements MarioAgent {
             setJump(JumpType.WALL, wallHeight > 1 ? wallHeight + 3 : 2);
         }
 
+        if(jumpType == JumpType.NONE && numStairs != 0 && model.isMarioOnGround()){
+            System.out.println("STAIRS");
+            setJump(JumpType.STAIRS, 10);
+        }
+
         if (jumpType == JumpType.NONE && gapSize > 0) {
             setJump(JumpType.GAP, 5);
         }
 
         action[MarioActions.RIGHT.getValue()] = !((gapSize > 0 && isFalling) && !action[MarioActions.LEFT.getValue()]);
         action[MarioActions.SPEED.getValue()] = ((wallHeight >= 4) || (gapSize >= 4));
-        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE && !enemyAboveMario);
+        action[MarioActions.JUMP.getValue()] = (jumpType != JumpType.NONE );
 
         // Jump timer for varying jump height
         if (action[MarioActions.JUMP.getValue()]) {
